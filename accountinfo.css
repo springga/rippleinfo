@@ -1,0 +1,12 @@
+body {font-family: verdana; }
+input {margin-bottom: 10px; }
+input#address {height: 33px; width: 400px; font-size: 18px; padding-left: 10px; }
+input#button {height: 40px; width: 100px; font-size: 20px; }
+table {width: 100%;}
+td {vertical-align: top; }
+p,a {font-size: 16px; color: #404040; text-decoration: none; }
+span.currency {font-size: 22px; color:#FFFFFF; padding: 0px 3px 0px; margin: 0px 15px 0px 0px; border-radius: 3px; }
+span.number {font-size: 24px; color: #000000; font-weight: bold; margin: 0px 2px 0px 0px; }
+span.marker {font-size: 14px; color: #ffffff; padding: 1px 6px 2px; margin: 0px 5px 5px 5px; border-radius: 3px; vertical-align: middle; }
+span.gateway {font-size: 14px; color: #ffffff; background-color: #3498db; padding: 1px 9px 2px; border-radius: 3px; }
+div#status {margin-left: 12px; }	
