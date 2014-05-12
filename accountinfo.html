@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Ripple Wallet Info</title>
+<input type="text" id="address" maxlength="34"  onkeypress="queryBalance()"/>
+<input type="submit" value="查询" id="btnBalance" class="button" onclick="queryBalance()"/>
+<div id="status"></div>
+<table><tr>
+	<td id="balance">
+		<table>
+			<tr>
+				<td><div id="info"></div></td></tr></table>
+		<table>
+			<tr>
+				<td><h1>持有</h1></td></tr>
+			<tr>
+				<td><table id="credit"></table></td></tr></table>
+		<table id="tb_debt" class="hidden">
+			<tr>
+				<td><h1>发行</h1></td>	</tr>
+			<tr>
+				<td><table id="debt"></table></td></tr></table>
+	</td>
+	<td id="transaction">
+		<table>
+			<tr>
+				<td><h1>交易</h1>
+				<input type="submit" value="查询" id="btnTx" class="hidden" onclick="queryTx()"/></td></tr>
+			<tr>
+				<td><table id="txCount"></table></td></tr></table>
+			<tr>
+				<td><table id="tx"></table></td></tr></table>
+	</td></tr>
+</table>
+<link type="text/css" rel="stylesheet" href="accountinfo.css" />
+<script type="text/javascript" src="address.js"></script>
+<script type="text/javascript" src="fiat.js"></script>
+<script type="text/javascript" src="accountinfo.js"></script>
