@@ -1,13 +1,16 @@
 var wsUri = "wss://s1.ripple.com/";
 var wsCmdBalanceXRP;
 var wsCmdBalanceIOU;
+var wsCmdOffer;
 var opStatus = document.getElementById("status");
 var opInfo = document.getElementById("info");
 var opCredit = document.getElementById("credit");
 var opDebt = document.getElementById("debt");
+var opOffer = document.getElementById("offer");
 var opTx = document.getElementById("tx");
 var opTxCount = document.getElementById("txCount");
 var tbDebt = document.getElementById("tb_debt");
+var tbOffer = document.getElementById("tb_offer");
 var btnTx = document.getElementById("btnTx");
 var marker;
 var startday;
@@ -16,11 +19,12 @@ var credits;
 var cntTx;
 var cntTrust;
 var counter;
-var psCur = 0;
 var url;
 var address;
 var txPreLgrSeq;
-var txBatch=100;
+var TX_BATCH=100;
+var PRECISON_RATE = 6;
+var PRECISON_AMT = 0;
 var DATE_RIPPLE_START = new Date(2000,0,1);
 var SHORT = {
 	"Exchange":"兑",
@@ -41,12 +45,15 @@ function queryBalance() {
 	window.location.href = url + "#" + address;
 	wsCmdBalanceXRP = cmdAccountInfo(1, "account_info", address);
 	wsCmdBalanceIOU = cmdAccountInfo(2, "account_lines", address);
+	wsCmdOffer = cmdAccountOffer(3, "account_offers", address);
 	opCredit.innerHTML = "<tr><th>币种</th><th>金额</th><th>发行者</th></tr>";
 	opDebt.innerHTML = "<tr><th>币种</th><th>金额</th><th>信任数</th><th>持有者</th></tr>";	
 	opInfo.innerHTML = "";
 	opTx.innerHTML = "";
 	opTxCount.innerHTML = "";
-	tbDebt.className = "hidden";	
+	opOffer.innerHTML = "";
+	tbDebt.className = "hidden";
+	tbOffer.className = "hidden";
 	credits = [];
 	cntTx = {};
 	cntTrust = 0;
@@ -54,11 +61,12 @@ function queryBalance() {
 	startWebSocket();
 }
 function queryTx() {
-	var wsCmdTx = cmdAccountTx(3, "account_tx", address, txPreLgrSeq , txBatch);
+	var wsCmdTx = cmdAccountTx(4, "account_tx", address, txPreLgrSeq , TX_BATCH);
 	websocket.send(wsCmdTx);
 	btnTx.className = "hidden";	//hide Tx button after requst sent
 	writeToStatus("正在查询交易...");
 }
+
 function startWebSocket() {
 	writeToStatus("正在连接...");
 	websocket = new WebSocket(wsUri);
@@ -71,7 +79,8 @@ function onOpen(evt) {
 	btnTx.className = "";	//enable queryTx after websocket open
 	writeToStatus("获取账户信息...");
 	websocket.send(wsCmdBalanceXRP);
-	websocket.send(wsCmdBalanceIOU);	
+	websocket.send(wsCmdBalanceIOU);
+	websocket.send(wsCmdOffer);
 }
 function onError(evt) {
 	console.log(evt.data);
@@ -85,9 +94,11 @@ function onMessage(evt) {
 	switch(data.id) {
 		case 1: procAccountInfo(data); break;
 		case 2: procAccountLines(data); break;
-		case 3: procTx(data); break;
+		case 3: procOffer(data); break;
+		case 4: procTx(data); break;		
 	}
 }
+
 function procAccountInfo(data) {
 	console.log(data);
 	if (data.status == "error") {writeToStatus("错误: " + data.error); return; }
@@ -143,11 +154,20 @@ function procAccountLines(data) {
 	if(cntTrust) tbDebt.className = "";
 	writeToStatus("基本信息查询完毕!");
 }
+function procOffer(data) {
+	console.log(data);
+	var offers = data.result.offers;
+	if(offers.length>0) tbOffer.className = "";
+	offers.forEach(function (offer) {
+		var get = toAmount(offer.taker_gets);
+		var pay = toAmount(offer.taker_pays);
+		writeToOffer(get,pay);});
+}
 function procTx(data) {
 	console.log(data);
 	if (data.result.marker) {
 		marker = marker==data.result.marker.ledger ? marker-1 : data.result.marker.ledger;
-		var wsCmdTx = cmdAccountTx(3, "account_tx", address, marker, txBatch);
+		var wsCmdTx = cmdAccountTx(3, "account_tx", address, marker, TX_BATCH);
 		websocket.send(wsCmdTx);}
 	for (var i in data.result.transactions) {
 		var tx = data.result.transactions[i].tx;
@@ -215,6 +235,10 @@ function cmdAccountTx(id, cmd, account, ledger, limit) {
 	return JSON.stringify({
 	    id: id, command: cmd, account: account,
 	    ledger_index_max: ledger, limit: limit });}
+function cmdAccountOffer(id, cmd, account){
+	return JSON.stringify({
+	    id: id, command: cmd, account: account});}
+
 function calcDate(date) {
 	var d = new Date(DATE_RIPPLE_START.getTime() - DATE_RIPPLE_START.getTimezoneOffset() * 60 * 1000 + date * 1000);
 	var year = d.getFullYear();
@@ -239,7 +263,7 @@ function toAmount(amount,meta) {
 	if(amount.currency) {
 		amt.value = amount.value;
 		amt.currency = amount.currency;
-		amt.issuer = getIssuer(meta,amount);
+		amt.issuer = meta ? getIssuer(meta,amount) : amount.issuer;
 	} else {
 		amt.value = xrp(amount);
 		amt.currency = 'XRP';
@@ -266,6 +290,14 @@ function inCredits(currency,issuer){
 	}
 	return -1;
 }
+function rate(num){
+    var s = num.toString().split('.');
+    if(s.length===1) return	num;
+    var i = s[0];
+    if(i.length>2) return i;
+    var d = s[1].substring(0,PRECISON_RATE);
+    if(i==="0") return i + "." + (d==="000000" ? "" : d);
+  	return i + "." + d.substring(0,3-i.length);}
 function fix(str,precision){
     return parseFloat(str).toFixed(precision).toString();}
 function comma(x) {
@@ -282,22 +314,22 @@ function writeToStatus(message) {
 function writeToCredit(credit) {
 	var row = document.createElement("tr");
 	row.innerHTML = "<td class='str'>" + markCurrency(credit.currency) + "</td>" +
-					"<td class='val'>" + markAmount(credit.amount, psCur) + "</td>" + 
+					"<td class='val'>" + markAmount(credit.amount) + "</td>" + 
 					"<td class='str'>" + addLink(credit.issuer) + "</td>";
 	opCredit.appendChild(row);}
 function writeToCreditEx(credit) {
 	var row = document.createElement("tr");
 	row.innerHTML = "<td class='str'>" + markCurrency(credit.currency) + "</td>" +
-					"<td class='val'>" + markAmount(credit.amount, psCur) + "</td>" + 
-					"<td class='val'>" + markAmount(credit.recv, psCur) + "</td>" + 
-					"<td class='val'>" + markAmount(credit.sent, psCur) + "</td>" + 
-					"<td class='val'>" + markAmount(credit.amount-credit.recv+credit.sent, psCur) + "</td>" + 
+					"<td class='val'>" + markAmount(credit.amount) + "</td>" + 
+					"<td class='val'>" + markAmount(credit.recv) + "</td>" + 
+					"<td class='val'>" + markAmount(credit.sent) + "</td>" + 
+					"<td class='val'>" + markAmount(credit.amount-credit.recv+credit.sent) + "</td>" + 
 					"<td class='str'>" + addLink(credit.issuer) + "</td>";
 	opCredit.appendChild(row);}
 function writeToDebt(cur,amount,lines,lines_funded) {
 	var row = document.createElement("tr");
 	row.innerHTML = "<td class='str'>" + markCurrency(cur) + "</td>" +
-					"<td class='val'>" + markAmount(amount, psCur) + "</td>" +
+					"<td class='val'>" + markAmount(amount) + "</td>" +
 					"<td class='val'>" + comma(lines) + "</td>" +
 					"<td class='val'>" + comma(lines_funded) + "</td>";
 	opDebt.appendChild(row);}
@@ -315,10 +347,21 @@ function writeToTx(rec) {
 	var row = document.createElement("tr");
 	row.innerHTML = "<td>" + rec.date + "</td>" +
 					"<td>" + markMarker(SHORT[rec.type],rec.type) + "</td>"+
-					"<td class='val'>" + markAmount(rec.amount,psCur) + "</td>" +
+					"<td class='val'>" + markAmount(rec.amount) + "</td>" +
 					"<td>" + markCurrency(rec.currency) + "</td>" +
 					"<td>" + addLink(rec.address) + "</td>";
 	opTx.appendChild(row);}
+function writeToOffer(get,pay) {
+	var row = document.createElement("tr");
+	row.innerHTML = "<td id='tight' class='val'>" + markAmount(get.value) + "</td>" +
+					"<td id='tight'>" + markCurrency(get.currency) + "</td>"+
+					"<td id='tight'>" + addLink(get.issuer) + "</td>"+
+					"<td id='mark'>" + markMarker("兑","Exchange") + "</td>"+
+					"<td id='tight' class='val'>" + markAmount(pay.value) + "</td>" +
+					"<td id='tight'>" + markCurrency(pay.currency) + "</td>" +
+					"<td>" + addLink(pay.issuer) + "</td>" +
+					"<td>@" +markAmount(get.value/pay.value,true) + "</td>";
+	opOffer.appendChild(row);}
 
 function markAccount(account) {
 	return "<span title='" + account + "'" + (account in GATEWAY ?  " class='gateway'>" + 
@@ -327,10 +370,10 @@ function markAccount(account) {
 function markCurrency(cur) {
 	return cur == "XRP" ? "<span class='currency' style='background-color:#D1D0CE'>" + cur + "</span>" : 
 			"<span class='currency' style='background-color:" + (FIAT.indexOf(cur)>-1 ? "#B5EAAA": "#FFCBA4") + "'>" + cur + "</span>";}
-function markAmount(amount, ps, isbold, iscomma) {
-	if (arguments.length == 2) {isbold = true; iscomma = true;}
-	return "<span " + (isbold ? "class='number'" : "") +" title='" + amount + "'>" + 
-		(iscomma ? comma(fix(amount, ps)) : fix(amount, ps)) + "</span>";}
+function markAmount(amount,isRate) {
+	//if (arguments.length===1) isRate = false;
+	return "<span class='number' title='" + amount + "'>" + 
+		(isRate ? rate(amount) : comma(fix(amount))) + "</span>";}
 function markMarker(marker, id) {
 	return "<span class='marker' id='" + id + "'>" + marker + "</span>";}
 function addLink(account) {

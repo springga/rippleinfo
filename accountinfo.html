@@ -8,25 +8,24 @@
 	<td id="balance">
 		<div id="info"></div>
 		<table>
-			<tr>
-				<td><h1>持有</h1></td></tr>
-			<tr>
-				<td><table id="credit"></table></td></tr></table>
+			<tr><td><h1>持有</h1></td></tr>
+			<tr><td><table id="credit"></table></td></tr></table>
 		<table id="tb_debt" class="hidden">
+			<tr><td><h1>发行</h1></td>	</tr>
+			<tr><td><table id="debt"></table></td></tr></table>
+		<table id="tb_offer" class="hidden">
 			<tr>
-				<td><h1>发行</h1></td>	</tr>
-			<tr>
-				<td><table id="debt"></table></td></tr></table>
+				<td><h1>挂单</h1></td></tr>
+			<tr><td><table id="offer"></table></td></tr>
+		</table>
 	</td>
 	<td id="transaction">
 		<table>
 			<tr>
 				<td><h1>交易</h1>
 				<input type="submit" value="查询" id="btnTx" class="hidden" onclick="queryTx()"/></td></tr>
-			<tr>
-				<td><table id="txCount"></table></td></tr>
-			<tr>
-				<td><table id="tx"></table></td></tr></table>
+			<tr><td><table id="txCount"></table></td></tr>
+			<tr><td><table id="tx"></table></td></tr></table>
 	</td></tr>
 </table>
 <link type="text/css" rel="stylesheet" href="accountinfo.css" />
