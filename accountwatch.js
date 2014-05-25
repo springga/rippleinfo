@@ -1,5 +1,4 @@
 var wsUri = "wss://s1.ripple.com/";
-var websocket;
 var wsCmdBalanceXRP;
 var wsCmdBalanceIOU;
 var wsCmdOffer;
@@ -46,13 +45,11 @@ function init() {
 function queryAccount() {
 	address = document.getElementById("address").value;
 	window.location.href = url + "#" + address;
-	var accounts=[];
-	accounts.push(address);
+	var address
 	wsCmdBalanceXRP = cmdAccountInfo(1, "account_info", address);
 	wsCmdBalanceIOU = cmdAccountInfo(2, "account_lines", address);
 	wsCmdOffer = cmdAccountOffer(4, "account_offers", address);
-	wsCmdSubscribe = cmdSubscribe(5, "subscribe", accounts);
-	console.log(wsCmdSubscribe);
+	wsCmdSubscribe = cmdSubscribe(5, "subscribe", ["transactions"], address);
 	opCredit.innerHTML = "<tr><th>币种</th><th>金额</th><th>发行者</th></tr>";
 	opDebt.innerHTML = "<tr><th>币种</th><th>金额</th><th>信任数</th><th>持有者</th></tr>";	
 	opInfo.innerHTML = "";
@@ -77,7 +74,6 @@ function queryTx() {
 
 function startWebSocket() {
 	writeToStatus("正在连接...");
-	if(websocket) websocket.close();
 	websocket = new WebSocket(wsUri);
 	websocket.onopen = function(evt) { onOpen(evt) };
 	websocket.onclose = function(evt) { onClose(evt) };
@@ -107,7 +103,6 @@ function onMessage(evt) {
 		case 3: procTx(data); break;
 		case 4: procOffer(data); break;
 		case 5: procWatch(data); break;	
-		default: procSubscribe(data);
 	}
 }
 
@@ -177,56 +172,6 @@ function procOffer(data) {
 }
 function procWatch(data) {
 	console.log(data);
-}
-function procSubscribe(data) {
-	console.log(data);	
-	var tx = data.transaction;
-	var account = tx.Account;
-	var type = tx.TransactionType;
-	var txt_notify;
-	switch(type) {
-		case "TrustSet":
-			var currency = tx.LimitAmount.currency;
-			var issuer = 
-			txt_notify = tx.LimitAmount.value + 
-				tx.LimitAmount.currency + " " + tx.LimitAmount.issuer;
-			break;
-		case "Payment":
-			var amount =  toAmount(tx.Amount)
-			txt_notify = amount.value + amount.currency +
-				"from " + account + " to " + tx.Destination;
-			break;
-		case "OfferCreate":
-			var get = toAmount(tx.TakerGets);
-			var pay = toAmount(tx.TakerPays);
-			txt_notify = get.value + " " + get.currency + " for " +
-				pay.value + " " + pay.currency + " @" + rate(get.value/pay.value);
-			break;
-		case "OfferCancel":
-			var nodes = data.meta.AffectedNodes;
-			nodes.forEach(function (n) {
-				if(n.DeletedNode && n.DeletedNode.LedgerEntryType === "Offer") {
-					var ff = n.DeletedNode.FinalFields;
-					if(ff.Account === account) {
-						var get = toAmount(ff.TakerGets);
-						var pay = toAmount(ff.TakerPays);
-						txt_notify = get.value + " " + get.currency + " for " +
-							pay.value + " " + pay.currency + " @" + rate(get.value/pay.value);
-					}
-				}
-			});
-			break;
-	}
-	txt_notify = account + "\n" + type + ": " + txt_notify
-	writeToWatch(txt_notify);
-	alert(txt_notify);
-	if (Notification.permission === "granted") {
-    var notification = new Notification("Hi there!");
-    var n = new Notification(
-    	account,{
-    	'body':txt_notify,
-    	'icon':'ripple.png'});
-  }  
 }
 function procTx(data) {
 	console.log(data);
@@ -303,9 +248,9 @@ function cmdAccountTx(id, cmd, account, ledger, limit) {
 function cmdAccountOffer(id, cmd, account){
 	return JSON.stringify({
 	    id: id, command: cmd, account: account});}
-function cmdSubscribe(id, cmd, accounts) {
+function cmdSubscribe(id, cmd, stream, account) {
 	return JSON.stringify({
-	    id: id, command: cmd, accounts: accounts});}
+	    id: id, command: cmd, streams: stream, accounts: account});}
 
 function calcDate(date) {
 	var d = new Date(DATE_RIPPLE_START.getTime() - DATE_RIPPLE_START.getTimezoneOffset() * 60 * 1000 + date * 1000);
@@ -427,12 +372,8 @@ function writeToOffer(get,pay) {
 					"<td class='val'>" + markAmount(pay.value) + "<span title='" + 
 					(pay.issuer in GATEWAY ? GATEWAY[pay.issuer] : pay.issuer) + 
 					"'> " + markCurrency(pay.currency) + "</span></td>" +
-					"<td>@" +markRate(get.value,pay.value) + "</td>";
+					"<td>@" +markRate(get.value/pay.value,true) + "</td>";
 	opOffer.appendChild(row);}
-function writeToWatch(data) {
-	var row = document.createElement("tr");
-	row.innerHTML = "<td>" + data + "</td>";
-	opWatch.appendChild(row);}
 
 function markAccount(account) {
 	return "<span title='" + account + "'" + (account in GATEWAY ?  " class='gateway'>" + 
@@ -444,9 +385,9 @@ function markCurrency(cur) {
 function markAmount(amount) {
 	return "<span class='number' title='" + amount + "'>" + 
 		comma(fix(amount)) + "</span>";}
-function markRate(pay,get) {
-	return "<span class='number' title='" + pay/get + " / " +　rate(get/pay) +
-		"'>" + rate(pay/get) + "</span>";}
+function markRate(amount) {
+	return "<span class='number' title='" + amount + " " +　rate(１/amount) "'>" + 
+		rate(amount) + "</span>";}
 function markMarker(marker, id) {
 	return "<span class='marker' id='" + id + "'>" + marker + "</span>";}
 function addLink(account) {
