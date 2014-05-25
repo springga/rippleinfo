@@ -5,11 +5,6 @@ var wsCmdBalanceXRP;
 var wsCmdBalanceIOU;
 var wsCmdOffer;
 var wsCmdSubscribe;
-=======
-var wsCmdBalanceXRP;
-var wsCmdBalanceIOU;
-var wsCmdOffer;
->>>>>>> 5ba605014ce98faf63b9c0aba3d51877e1fa9b51
 var opStatus = document.getElementById("status");
 var opInfo = document.getElementById("info");
 var opCredit = document.getElementById("credit");
@@ -17,10 +12,7 @@ var opDebt = document.getElementById("debt");
 var opOffer = document.getElementById("offer");
 var opTx = document.getElementById("tx");
 var opTxCount = document.getElementById("txCount");
-<<<<<<< HEAD
 var opWatch =  document.getElementById("watch");
-=======
->>>>>>> 5ba605014ce98faf63b9c0aba3d51877e1fa9b51
 var tbDebt = document.getElementById("tb_debt");
 var tbOffer = document.getElementById("tb_offer");
 var btnTx = document.getElementById("btnTx");
@@ -50,7 +42,6 @@ function init() {
 	if (url.indexOf("#") >= 0) {
 		document.getElementById("address").value = url.split("#")[1].trim();
 		url = url.split("#")[0];
-<<<<<<< HEAD
 		queryAccount();}
 }
 function queryAccount() {
@@ -62,27 +53,13 @@ function queryAccount() {
 	wsCmdBalanceIOU = cmdAccountInfo(2, "account_lines", address);
 	wsCmdOffer = cmdAccountOffer(4, "account_offers", address);
 	wsCmdSubscribe = cmdSubscribe(5, "subscribe", accounts);
-	console.log(wsCmdSubscribe);
-=======
-		queryBalance();}
-}
-function queryBalance() {
-	address = document.getElementById("address").value;
-	window.location.href = url + "#" + address;
-	wsCmdBalanceXRP = cmdAccountInfo(1, "account_info", address);
-	wsCmdBalanceIOU = cmdAccountInfo(2, "account_lines", address);
-	wsCmdOffer = cmdAccountOffer(3, "account_offers", address);
->>>>>>> 5ba605014ce98faf63b9c0aba3d51877e1fa9b51
 	opCredit.innerHTML = "<tr><th>币种</th><th>金额</th><th>发行者</th></tr>";
 	opDebt.innerHTML = "<tr><th>币种</th><th>金额</th><th>信任数</th><th>持有者</th></tr>";	
 	opInfo.innerHTML = "";
 	opTx.innerHTML = "";
 	opTxCount.innerHTML = "";
 	opOffer.innerHTML = "";
-<<<<<<< HEAD
 	opWatch.innerHTML = "";
-=======
->>>>>>> 5ba605014ce98faf63b9c0aba3d51877e1fa9b51
 	tbDebt.className = "hidden";
 	tbOffer.className = "hidden";
 	credits = [];
@@ -92,11 +69,7 @@ function queryBalance() {
 	startWebSocket();
 }
 function queryTx() {
-<<<<<<< HEAD
 	var wsCmdTx = cmdAccountTx(3, "account_tx", address, txPreLgrSeq , TX_BATCH);
-=======
-	var wsCmdTx = cmdAccountTx(4, "account_tx", address, txPreLgrSeq , TX_BATCH);
->>>>>>> 5ba605014ce98faf63b9c0aba3d51877e1fa9b51
 	websocket.send(wsCmdTx);
 	btnTx.className = "hidden";	//hide Tx button after requst sent
 	writeToStatus("正在查询交易...");
@@ -104,10 +77,7 @@ function queryTx() {
 
 function startWebSocket() {
 	writeToStatus("正在连接...");
-<<<<<<< HEAD
 	if(websocket) websocket.close();
-=======
->>>>>>> 5ba605014ce98faf63b9c0aba3d51877e1fa9b51
 	websocket = new WebSocket(wsUri);
 	websocket.onopen = function(evt) { onOpen(evt) };
 	websocket.onclose = function(evt) { onClose(evt) };
@@ -120,10 +90,7 @@ function onOpen(evt) {
 	websocket.send(wsCmdBalanceXRP);
 	websocket.send(wsCmdBalanceIOU);
 	websocket.send(wsCmdOffer);
-<<<<<<< HEAD
 	websocket.send(wsCmdSubscribe);
-=======
->>>>>>> 5ba605014ce98faf63b9c0aba3d51877e1fa9b51
 }
 function onError(evt) {
 	console.log(evt.data);
@@ -137,15 +104,10 @@ function onMessage(evt) {
 	switch(data.id) {
 		case 1: procAccountInfo(data); break;
 		case 2: procAccountLines(data); break;
-<<<<<<< HEAD
 		case 3: procTx(data); break;
 		case 4: procOffer(data); break;
 		case 5: procWatch(data); break;	
 		default: procSubscribe(data);
-=======
-		case 3: procOffer(data); break;
-		case 4: procTx(data); break;		
->>>>>>> 5ba605014ce98faf63b9c0aba3d51877e1fa9b51
 	}
 }
 
@@ -213,7 +175,6 @@ function procOffer(data) {
 		var pay = toAmount(offer.taker_pays);
 		writeToOffer(get,pay);});
 }
-<<<<<<< HEAD
 function procWatch(data) {
 	console.log(data);
 }
@@ -267,8 +228,6 @@ function procSubscribe(data) {
     	'icon':'ripple.png'});
   }  
 }
-=======
->>>>>>> 5ba605014ce98faf63b9c0aba3d51877e1fa9b51
 function procTx(data) {
 	console.log(data);
 	if (data.result.marker) {
@@ -344,12 +303,9 @@ function cmdAccountTx(id, cmd, account, ledger, limit) {
 function cmdAccountOffer(id, cmd, account){
 	return JSON.stringify({
 	    id: id, command: cmd, account: account});}
-<<<<<<< HEAD
 function cmdSubscribe(id, cmd, accounts) {
 	return JSON.stringify({
 	    id: id, command: cmd, accounts: accounts});}
-=======
->>>>>>> 5ba605014ce98faf63b9c0aba3d51877e1fa9b51
 
 function calcDate(date) {
 	var d = new Date(DATE_RIPPLE_START.getTime() - DATE_RIPPLE_START.getTimezoneOffset() * 60 * 1000 + date * 1000);
@@ -394,10 +350,6 @@ function getIssuer(meta,amount){
 			else if(low.issuer === address) return high.issuer;}}
 	return amount.issuer;
 }
-<<<<<<< HEAD
-=======
-
->>>>>>> 5ba605014ce98faf63b9c0aba3d51877e1fa9b51
 function inCredits(currency,issuer){
 	for(i in credits) {
 		c = credits[i];
@@ -434,11 +386,7 @@ function writeToCredit(credit) {
 	opCredit.appendChild(row);}
 function writeToCreditEx(credit) {
 	var row = document.createElement("tr");
-<<<<<<< HEAD
-	row.innerHTML = "<td class='str'><span class='grid'>" + markCurrency(credit.currency) + "</td>" +
-=======
 	row.innerHTML = "<td class='str'>" + markCurrency(credit.currency) + "</td>" +
->>>>>>> 5ba605014ce98faf63b9c0aba3d51877e1fa9b51
 					"<td class='val'>" + markAmount(credit.amount) + "</td>" + 
 					"<td class='val'>" + markAmount(credit.recv) + "</td>" + 
 					"<td class='val'>" + markAmount(credit.sent) + "</td>" + 
@@ -472,7 +420,6 @@ function writeToTx(rec) {
 	opTx.appendChild(row);}
 function writeToOffer(get,pay) {
 	var row = document.createElement("tr");
-<<<<<<< HEAD
 	row.innerHTML = "<td class='val'>" + markAmount(get.value) + "<span title='" + 
 					(get.issuer in GATEWAY ? GATEWAY[get.issuer] : get.issuer) + 
 					"'> " + markCurrency(get.currency) + "</span></td>" +
@@ -486,17 +433,6 @@ function writeToWatch(data) {
 	var row = document.createElement("tr");
 	row.innerHTML = "<td>" + data + "</td>";
 	opWatch.appendChild(row);}
-=======
-	row.innerHTML = "<td id='tight' class='val'>" + markAmount(get.value) + "</td>" +
-					"<td id='tight'>" + markCurrency(get.currency) + "</td>"+
-					"<td id='tight'>" + addLink(get.issuer) + "</td>"+
-					"<td id='mark'>" + markMarker("兑","Exchange") + "</td>"+
-					"<td id='tight' class='val'>" + markAmount(pay.value) + "</td>" +
-					"<td id='tight'>" + markCurrency(pay.currency) + "</td>" +
-					"<td>" + addLink(pay.issuer) + "</td>" +
-					"<td>@" +markAmount(get.value/pay.value,true) + "</td>";
-	opOffer.appendChild(row);}
->>>>>>> 5ba605014ce98faf63b9c0aba3d51877e1fa9b51
 
 function markAccount(account) {
 	return "<span title='" + account + "'" + (account in GATEWAY ?  " class='gateway'>" + 
@@ -505,19 +441,12 @@ function markAccount(account) {
 function markCurrency(cur) {
 	return cur == "XRP" ? "<span class='currency' style='background-color:#D1D0CE'>" + cur + "</span>" : 
 			"<span class='currency' style='background-color:" + (FIAT.indexOf(cur)>-1 ? "#B5EAAA": "#FFCBA4") + "'>" + cur + "</span>";}
-<<<<<<< HEAD
 function markAmount(amount) {
 	return "<span class='number' title='" + amount + "'>" + 
 		comma(fix(amount)) + "</span>";}
 function markRate(pay,get) {
 	return "<span class='number' title='" + pay/get + " / " +　rate(get/pay) +
 		"'>" + rate(pay/get) + "</span>";}
-=======
-function markAmount(amount,isRate) {
-	//if (arguments.length===1) isRate = false;
-	return "<span class='number' title='" + amount + "'>" + 
-		(isRate ? rate(amount) : comma(fix(amount))) + "</span>";}
->>>>>>> 5ba605014ce98faf63b9c0aba3d51877e1fa9b51
 function markMarker(marker, id) {
 	return "<span class='marker' id='" + id + "'>" + marker + "</span>";}
 function addLink(account) {
