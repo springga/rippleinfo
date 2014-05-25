@@ -4,8 +4,8 @@ input#address {height: 33px; width: 400px; font-size: 18px; padding-left: 10px; 
 input#btnBalance,input#btnTx {height: 36px; width: 100px; font-size: 20px; margin-left: 10px;}
 h1 {display: inline-block;}
 th {padding: 0px 20px 10px 0px; text-align: left; font-size: 20px; color: #c0c0c0;}
-td {padding-right: 20px;}
-td#transaction,td#balance,td#realtime {vertical-align: top;}
+td {padding-right: 15px;}
+td#transaction,td#balance {vertical-align: top;}
 span.mark {padding-right: 10px; padding-left: 10px;}
 a { text-decoration: none; color: #404040;}
 div#status {margin-left: 12px;}
@@ -16,6 +16,8 @@ div#status {margin-left: 12px;}
 .number {font-size: 24px; color: #000000;}
 .marker {font-weight: bold;}
 .gateway {font-size: 14px; color: #0066FF;}
-#Send,#Sell {color: #990033;}
-#Receive,#Buy {color: #47A347;}
+#Send {color: #990033;}
+#Receive {color: #47A347;}
 #Exchange {color: #333399;}
+#OfferCreate,#OfferCancel {color: #999900;}
+#TrustSet {color: #CC99CC;}

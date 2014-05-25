@@ -11,7 +11,6 @@ var opDebt = document.getElementById("debt");
 var opOffer = document.getElementById("offer");
 var opTx = document.getElementById("tx");
 var opTxCount = document.getElementById("txCount");
-var opWatch =  document.getElementById("watch");
 var tbDebt = document.getElementById("tb_debt");
 var tbOffer = document.getElementById("tb_offer");
 var btnTx = document.getElementById("btnTx");
@@ -33,8 +32,9 @@ var SHORT = {
 	"Exchange":"兑",
 	"Send":"发",
 	"Receive":"收",
-	"Buy":"买",
-	"Sell":"卖"};
+	"OfferCreate":"挂",
+	"OfferCancel":"撤",
+	"TrustSet":"信"};
 
 function init() {
 	url = document.URL;
@@ -58,7 +58,6 @@ function queryAccount() {
 	opTx.innerHTML = "";
 	opTxCount.innerHTML = "";
 	opOffer.innerHTML = "";
-	opWatch.innerHTML = "";
 	tbDebt.className = "hidden";
 	tbOffer.className = "hidden";
 	credits = [];
@@ -176,112 +175,29 @@ function procOffer(data) {
 }
 function procWatch(data) {
 	console.log(data);
+	writeToStatus("开始监控!");
 }
 function procSubscribe(data) {
 	console.log(data);	
+	writeToStatus("正在监控...");
 	var tx = data.transaction;
-	var account = tx.Account;
-	var type = tx.TransactionType;
-	var txt_notify;
-	switch(type) {
-		case "TrustSet":
-			var currency = tx.LimitAmount.currency;
-			var issuer = 
-			txt_notify = tx.LimitAmount.value + 
-				tx.LimitAmount.currency + " " + tx.LimitAmount.issuer;
-			break;
-		case "Payment":
-			var amount =  toAmount(tx.Amount)
-			txt_notify = amount.value + amount.currency +
-				"from " + account + " to " + tx.Destination;
-			break;
-		case "OfferCreate":
-			var get = toAmount(tx.TakerGets);
-			var pay = toAmount(tx.TakerPays);
-			txt_notify = get.value + " " + get.currency + " for " +
-				pay.value + " " + pay.currency + " @" + rate(get.value/pay.value);
-			break;
-		case "OfferCancel":
-			var nodes = data.meta.AffectedNodes;
-			nodes.forEach(function (n) {
-				if(n.DeletedNode && n.DeletedNode.LedgerEntryType === "Offer") {
-					var ff = n.DeletedNode.FinalFields;
-					if(ff.Account === account) {
-						var get = toAmount(ff.TakerGets);
-						var pay = toAmount(ff.TakerPays);
-						txt_notify = get.value + " " + get.currency + " for " +
-							pay.value + " " + pay.currency + " @" + rate(get.value/pay.value);
-					}
-				}
-			});
-			break;
-	}
-	txt_notify = account + "\n" + type + ": " + txt_notify
-	writeToWatch(txt_notify);
-	alert(txt_notify);
-	if (Notification.permission === "granted") {
-    var notification = new Notification("Hi there!");
-    var n = new Notification(
-    	account,{
-    	'body':txt_notify,
-    	'icon':'ripple.png'});
-  }  
+	var meta = data.meta;
+	procTxLow(tx,meta,false);
 }
 function procTx(data) {
 	console.log(data);
 	if (data.result.marker) {
-		marker = marker==data.result.marker.ledger ? marker-1 : data.result.marker.ledger;
+		marker = marker===data.result.marker.ledger ? marker-1 : data.result.marker.ledger;
 		var wsCmdTx = cmdAccountTx(3, "account_tx", address, marker, TX_BATCH);
 		websocket.send(wsCmdTx);}
-	for (var i in data.result.transactions) {
-		var tx = data.result.transactions[i].tx;
-		var meta = data.result.transactions[i].meta;
-		var type = tx.TransactionType;
-		var date = tx.date;
-		if(!startday) startday = tx.date;
-		endday = tx.date;
-		var cdate = calcDate(date);
-		var fee = tx.Fee;
-		var counterparty;
-		var amount = 0;
-		switch(type) {
-			case "Payment":
-				amount = toAmount(tx.Amount,meta);
-				if (tx.Account === address) {
-          if (tx.Destination === address) {
-            type = 'Exchange';}
-          else {
-            type = 'Send';
-          	counterparty = tx.Destination;
-          	var index = inCredits(amount.currency,amount.issuer);
-          	if(index>=0) credits[index].sent += +amount.value;
-          	else {
-          		var credit = {currency:amount.currency, amount:0, sent:+amount.value, recv:0, issuer:amount.issuer};
-          		credits.push(credit);}}}
-        else if (tx.Destination === address){
-          type = 'Receive';
-        	counterparty = tx.Account;
-        	var index = inCredits(amount.currency,amount.issuer);
-          if(index>=0) credits[index].recv += +amount.value;
-        	else {
-        		var credit = {currency:amount.currency, amount:0, sent:0, recv:+amount.value, issuer:amount.issuer};
-        		credits.push(credit);}}
-        else type = "Convert";
-				break;
-		}
-		if(type in cntTx) cntTx[type]++;
-		else cntTx[type]=1;
-
-		if (type === 'Send' || type === 'Receive') {
-			var record = {date:cdate, type:type, amount:amount.value, currency:amount.currency, address:counterparty};
-			writeToTx(record);
-		}
-		console.log(counter, type, amount.value + amount.currency, amount.issuer);
-		counter += 1;
-	}
+	var transactions = data.result.transactions;
+	for (var i in transactions) {
+		var tx = transactions[i].tx;
+		var meta = transactions[i].meta;
+		procTxLow(tx,meta,true);}
 	writeToStatus("已处理" + counter + "条记录...");
 	if (!data.result.marker) {
-		writeToTxCount("Age/days:",calcDays(startday,endday));
+		writeToTxCount("Age/days",calcDays(startday,endday));
 		for (var t in cntTx) {
 			writeToTxCount(t, cntTx[t]);}
 		if (!GATEWAY[address]) {
@@ -290,6 +206,89 @@ function procTx(data) {
 				writeToCreditEx(c);});}
 		websocket.close();
 		writeToStatus("交易信息查询完毕!");}
+}
+
+function procTxLow(tx,meta,isPast){		
+	var type = tx.TransactionType;
+	var date = tx.date;
+	if(!startday) startday = tx.date;
+	endday = tx.date;
+	var cdate = calcDate(date);
+	var fee = tx.Fee;
+	var counterparty;
+	var amount = 0;
+	switch(type) {
+		case "Payment":
+			amount = toAmount(tx.Amount,meta);
+			if (tx.Account === address) {
+        if (tx.Destination === address) {
+          type = 'Exchange';}
+        else {
+          type = 'Send';
+        	counterparty = tx.Destination;
+        	var index = inCredits(amount.currency,amount.issuer);
+        	if(index>=0) credits[index].sent += +amount.value;
+        	else {
+        		var credit = {currency:amount.currency, amount:0, sent:+amount.value, recv:0, issuer:amount.issuer};
+        		credits.push(credit);}}}
+      else if (tx.Destination === address){
+        type = 'Receive';
+      	counterparty = tx.Account;
+      	var index = inCredits(amount.currency,amount.issuer);
+        if(index>=0) credits[index].recv += +amount.value;
+      	else {
+      		var credit = {currency:amount.currency, amount:0, sent:0, recv:+amount.value, issuer:amount.issuer};
+      		credits.push(credit);}}
+      else type = "OfferTaken";
+			break;
+		case "OfferCreate":
+			if (tx.Account === address) {
+				amount = toAmount(tx.TakerGets);
+				var counteramount = toAmount(tx.TakerPays);}
+			else type = "OfferTaken";
+			break;
+		case "OfferCancel":
+			var nodes = meta.AffectedNodes;
+			nodes.forEach(function (n) {
+				if(n.DeletedNode && n.DeletedNode.LedgerEntryType === "Offer") {
+					var ff = n.DeletedNode.FinalFields;
+					if(ff.Account === address) {
+						amount = toAmount(ff.TakerGets);
+						var counteramount = toAmount(ff.TakerPays);}}});
+			break;
+		case "TrustSet":
+			amount = toAmount(tx.LimitAmount);
+			break;
+	}
+	if(type in cntTx) cntTx[type]++;
+	else cntTx[type] = 1;
+
+	var toWrite = false;
+	if (type === 'Send' || type === 'Receive') {
+		var record = {
+			date:cdate, 
+			type:type, 
+			amount:amount, 
+			address:counterparty};
+		toWrite=true;}
+	else if (type === 'OfferCreate' || type === 'OfferCancel') {
+		var record = {
+			date:cdate, 
+			type:type, 
+			amount:amount,
+			counteramount:counteramount};
+		toWrite=true;}
+	else if (type === 'TrustSet') {
+		var record = {
+			date:cdate, 
+			type:type, 
+			amount:amount, 
+			address:amount.issuer};
+		toWrite=true;}
+	if(isPast) counter += 1;
+	if(toWrite) {
+		writeToTx(record,isPast);
+		console.log(counter, type, amount.value + amount.currency, amount.issuer);}
 }
 
 function cmdAccountInfo(id, cmd, account) {
@@ -317,10 +316,10 @@ function calcDate(date) {
 	return year + "/" + (month < 10 ? "0" + month : month) + "/"
         + (day < 10 ? "0" + day : day) + " "
      	+ (hour < 10 ? "0" + hour : hour) + ":"
-        + (min < 10 ? "0" + min : min);}
+        + (min < 10 ? "0" + min : min) + ":"
+        + (sec < 10 ? "0" + sec : sec);}
 function calcDays(d1,d2) {
-	return parseInt((d1>d2 ? d1-d2 : d2-d1)/3600/24)
-}
+	return parseInt((d1>d2 ? d1-d2 : d2-d1)/3600/24);}
 function xrp(balance) {
 	return balance / 1000000;}
 function toFee(fee) {
@@ -336,8 +335,7 @@ function toAmount(amount,meta) {
 		amt.currency = 'XRP';
 		amt.issuer = '';
 	}
-	return amt;
-}
+	return amt;}
 function getIssuer(meta,amount){	
 	for(i in meta.AffectedNodes){
 		var n = meta.AffectedNodes[i].ModifiedNode;
@@ -347,15 +345,13 @@ function getIssuer(meta,amount){
 			var low = n.FinalFields.LowLimit;
 			if(high.issuer === address) return low.issuer;
 			else if(low.issuer === address) return high.issuer;}}
-	return amount.issuer;
-}
+	return amount.issuer;}
 function inCredits(currency,issuer){
 	for(i in credits) {
 		c = credits[i];
 		if(c.currency == currency && c.issuer == issuer) return i;
 	}
-	return -1;
-}
+	return -1;}
 function rate(num){
     var s = num.toString().split('.');
     if(s.length===1) return	num;
@@ -379,13 +375,13 @@ function writeToStatus(message) {
 	opStatus.innerHTML = message;}
 function writeToCredit(credit) {
 	var row = document.createElement("tr");
-	row.innerHTML = "<td class='str'>" + markCurrency(credit.currency) + "</td>" +
+	row.innerHTML = "<td class='str'>" + markCurrency(credit) + "</td>" +
 					"<td class='val'>" + markAmount(credit.amount) + "</td>" + 
 					"<td class='str'>" + addLink(credit.issuer) + "</td>";
 	opCredit.appendChild(row);}
 function writeToCreditEx(credit) {
 	var row = document.createElement("tr");
-	row.innerHTML = "<td class='str'>" + markCurrency(credit.currency) + "</td>" +
+	row.innerHTML = "<td class='str'>" + markCurrency(credit) + "</td>" +
 					"<td class='val'>" + markAmount(credit.amount) + "</td>" + 
 					"<td class='val'>" + markAmount(credit.recv) + "</td>" + 
 					"<td class='val'>" + markAmount(credit.sent) + "</td>" + 
@@ -394,7 +390,8 @@ function writeToCreditEx(credit) {
 	opCredit.appendChild(row);}
 function writeToDebt(cur,amount,lines,lines_funded) {
 	var row = document.createElement("tr");
-	row.innerHTML = "<td class='str'>" + markCurrency(cur) + "</td>" +
+	var amt = {currency:cur, issuer:address};
+	row.innerHTML = "<td class='str'>" + markCurrency(amt) + "</td>" +
 					"<td class='val'>" + markAmount(amount) + "</td>" +
 					"<td class='val'>" + comma(lines) + "</td>" +
 					"<td class='val'>" + comma(lines_funded) + "</td>";
@@ -409,37 +406,53 @@ function writeToTxCount(type,count) {
 	row.innerHTML = "<td>" + type + ": </td>" +
 					"<td>" + count + "</td>";
 	opTxCount.appendChild(row);}
-function writeToTx(rec) {
+function writeToTx(rec,isPast) {
 	var row = document.createElement("tr");
-	row.innerHTML = "<td>" + rec.date + "</td>" +
+	var html;
+	if(rec.type==="Send" || rec.type==="Receive" || rec.type==='TrustSet') {
+		html = "<td>" + rec.date + "</td>" +
 					"<td>" + markMarker(SHORT[rec.type],rec.type) + "</td>"+
-					"<td class='val'>" + markAmount(rec.amount) + "</td>" +
-					"<td>" + markCurrency(rec.currency) + "</td>" +
-					"<td>" + addLink(rec.address) + "</td>";
-	opTx.appendChild(row);}
+					"<td class='val'>" + markAmount(rec.amount.value) + " " + markCurrency(rec.amount) + "</td>" +
+					"<td colspan=3>" + addLink(rec.address) + "</td>";}
+	else if(rec.type==="OfferCreate" || rec.type==="OfferCancel") {
+		html = "<td>" + rec.date + "</td>" +
+					"<td>" + markMarker(SHORT[rec.type],rec.type) + "</td>"+
+					"<td class='val'>" + markAmount(rec.amount.value) + " " + markCurrency(rec.amount) + "</td>" +
+					"<td>换</td>" +
+					"<td class='val'>" + markAmount(rec.counteramount.value) + " " + markCurrency(rec.counteramount) + "</td>" +
+					"<td>@ " + markRate(rec.amount.value,rec.counteramount.value) + "</td>";}
+	row.innerHTML = html;
+	if(isPast) {
+		opTx.appendChild(row);}
+	else {
+		opTx.insertBefore(row, opTx[0]);}}
 function writeToOffer(get,pay) {
 	var row = document.createElement("tr");
 	row.innerHTML = "<td class='val'>" + markAmount(get.value) + "<span title='" + 
 					(get.issuer in GATEWAY ? GATEWAY[get.issuer] : get.issuer) + 
-					"'> " + markCurrency(get.currency) + "</span></td>" +
-					"<td><span class='mark'>" + markMarker("兑","Exchange") + "</td>"+
+					"'> " + markCurrency(get) + "</span></td>" +
+					"<td><span class='mark'>换</td>"+
 					"<td class='val'>" + markAmount(pay.value) + "<span title='" + 
 					(pay.issuer in GATEWAY ? GATEWAY[pay.issuer] : pay.issuer) + 
-					"'> " + markCurrency(pay.currency) + "</span></td>" +
+					"'> " + markCurrency(pay) + "</span></td>" +
 					"<td>@" +markRate(get.value,pay.value) + "</td>";
 	opOffer.appendChild(row);}
-function writeToWatch(data) {
-	var row = document.createElement("tr");
-	row.innerHTML = "<td>" + data + "</td>";
-	opWatch.appendChild(row);}
 
 function markAccount(account) {
 	return "<span title='" + account + "'" + (account in GATEWAY ?  " class='gateway'>" + 
 			GATEWAY[account] : account && account!=='' ?
 			">" + account.substring(0,4) + '..' + account.substring(31) : ">" + account) + "</span>";}
-function markCurrency(cur) {
-	return cur == "XRP" ? "<span class='currency' style='background-color:#D1D0CE'>" + cur + "</span>" : 
-			"<span class='currency' style='background-color:" + (FIAT.indexOf(cur)>-1 ? "#B5EAAA": "#FFCBA4") + "'>" + cur + "</span>";}
+function markCurrency(amount) {
+	return "<span class='currency' title='" + amount.issuer + "' style='background-color:" + 
+				colorMap(amount.currency) + "'>" + amount.currency + "</span>";}
+function colorMap(cur) {
+	if(cur==="XRP") 
+		return "#D1D0CE"; //grey
+	else if(FIAT.indexOf(cur)>-1)
+		return "#B5EAAA"; //green
+	else
+		return "#FFCBA4"; //pink
+}
 function markAmount(amount) {
 	return "<span class='number' title='" + amount + "'>" + 
 		comma(fix(amount)) + "</span>";}
