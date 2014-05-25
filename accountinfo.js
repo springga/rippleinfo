@@ -1,5 +1,4 @@
 var wsUri = "wss://s1.ripple.com/";
-<<<<<<< HEAD
 var websocket;
 var wsCmdBalanceXRP;
 var wsCmdBalanceIOU;
