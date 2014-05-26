@@ -212,6 +212,7 @@ function procTxLow(tx,meta,isPast){
 	var fee = tx.Fee;
 	var counterparty;
 	var amount = 0;
+	var counteramount;
 	switch(type) {
 		case "Payment":
 			amount = toAmount(tx.Amount,meta);
@@ -239,7 +240,7 @@ function procTxLow(tx,meta,isPast){
 		case "OfferCreate":
 			if (tx.Account === address) {
 				amount = toAmount(tx.TakerGets);
-				var counteramount = toAmount(tx.TakerPays);}
+				counteramount = toAmount(tx.TakerPays);}
 			else type = "OfferTaken";
 			break;
 		case "OfferCancel":
@@ -250,8 +251,7 @@ function procTxLow(tx,meta,isPast){
 					var ff = n.DeletedNode.FinalFields;
 					if(ff.Account === address) {
 						amount = toAmount(ff.TakerGets);
-						var counteramount = toAmount(ff.TakerPays);
-						console.log(amount,counteramount);
+						counteramount = toAmount(ff.TakerPays);
 						hasFind = true;}}});
 			if(nodes.length===1) type = "Fee";
 			else if(!hasFind) type = "OfferTaken";
@@ -442,8 +442,8 @@ function markAccount(account) {
 	return "<span title='" + account + "'" + (account in GATEWAY ?  " class='gateway'>" + 
 			GATEWAY[account] : ">" + shortenString(account))  + "</span>";}
 function markCurrency(amount) {
-	return "<span class='currency' title='" + amount.issuer + "' style='background-color:" + 
-				colorMap(amount.currency) + "'>" + shortenString(amount.currency) + "</span>";}
+	return "<span class='currency' title='" + (amount.issuer in GATEWAY ? GATEWAY[amount.issuer] : amount.issuer) + 
+				"' style='background-color:" + colorMap(amount.currency) + "'>" + shortenString(amount.currency) + "</span>";}
 function colorMap(cur) {
 	if(cur==="XRP") 
 		return "#D1D0CE"; //grey
