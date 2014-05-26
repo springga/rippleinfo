@@ -1,7 +1,7 @@
 body {font-family: verdana; font-size: 16px;}
 input {margin-bottom: 10px;}
 input#address {height: 33px; width: 400px; font-size: 18px; padding-left: 10px; }
-input#btnBalance,input#btnTx {height: 36px; width: 100px; font-size: 20px; margin-left: 10px;}
+input#btnQuery,input#btnTx {height: 36px; width: 100px; font-size: 20px; margin-left: 10px;}
 h1 {display: inline-block;}
 th {padding: 0px 20px 10px 0px; text-align: left; font-size: 20px; color: #c0c0c0;}
 td {padding-right: 15px;}
