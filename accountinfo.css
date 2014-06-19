@@ -1,14 +1,15 @@
-body {font-family: verdana; font-size: 16px;}
-input {margin-bottom: 10px;}
+body {font-family: verdana; font-size: 16px; margin:0;}
+input {margin: 10px;}
 input#address {height: 33px; width: 400px; font-size: 18px; padding-left: 10px; }
 input#btnQuery,input#btnTx {height: 36px; width: 100px; font-size: 20px; margin-left: 10px;}
+table {margin-left: 10px; margin-bottom: 10px;}
 h1 {display: inline-block;}
 th {padding: 0px 20px 10px 0px; text-align: left; font-size: 20px; color: #c0c0c0;}
 td {padding-right: 15px;}
 td#transaction,td#balance {vertical-align: top;}
 span.mark {padding-right: 10px; padding-left: 10px;}
 a { text-decoration: none; color: #404040;}
-div#status {margin-left: 12px;}
+div#status {margin-left: 20px;}
 .str {text-align: left;}
 .val {text-align: right;}
 .hidden {display: none;}
@@ -21,3 +22,6 @@ div#status {margin-left: 12px;}
 #Exchange {color: #333399;}
 #OfferCreate,#OfferCancel {color: #999900;}
 #TrustSet {color: #CC99CC;}
+div#footer {position: fixed; bottom: 0; width: 100%; background-color: #333;}
+div#donate,#host {font-size: 14px; margin: 5px 10px 5px 20px; color: #eee; display: inline-block;}
+div#footer a{color: #aaa;}

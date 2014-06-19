@@ -24,8 +24,7 @@ var cntTx;
 var cntTrust;
 var counter;
 var url;
-var address;
-var txPreLgrSeq;
+var address
 var TX_BATCH=100;
 var PRECISON_RATE = 6;
 var PRECISON_AMT = 0;
@@ -69,7 +68,7 @@ function queryAccount() {
 	startWebSocket();
 }
 function queryTx() {
-	var wsCmdTx = cmdAccountTx(3, "account_tx", address, txPreLgrSeq , TX_BATCH);
+	var wsCmdTx = cmdAccountTx(3, "account_tx", address, -1 , TX_BATCH);
 	websocket.send(wsCmdTx);
 	btnTx.className = "hidden";	//hide Tx button after requst sent
 	writeToStatus("正在查询交易...");
@@ -129,8 +128,7 @@ function procAccountInfo(data) {
 	var domain = account_data.Domain;
 	if(domain) writeToInfo('域名:　' + ascify(domain));
 	var fee = account_data.TransferRate;
-	if(fee) writeToInfo('费用:　' + toFee(fee) + '%');
-	txPreLgrSeq=account_data.PreviousTxnLgrSeq;}
+	if(fee) writeToInfo('费用:　' + toFee(fee) + '%');}
 function procAccountLines(data) {
 	console.log(data);
 	if (data.status == "error") {writeToStatus("错误: " + data.error); return; }
