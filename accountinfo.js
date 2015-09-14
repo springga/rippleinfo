@@ -1,4 +1,4 @@
-var wsUri = "wss://s1.ripple.com/";
+var wsUri = "wss://s2.ripple.com/";
 var websocket;
 var wsCmdBalanceXRP;
 var wsCmdBalanceIOU;
